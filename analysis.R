@@ -123,27 +123,39 @@ emoji_juju <- df_emoji %>%
   filter(autor == 'Juju') %>% 
   ggplot(aes(x = n, y = reorder(label, n))) + 
   geom_col(fill = "#F8766D") +
+  geom_text(aes(label = n), nudge_x = 15) +
   labs(x = NULL, y = NULL,
-       subtitle = 'Juju') +
-  theme(axis.text.y = ggtext::element_markdown(),
+       subtitle = 'Juliana') +
+  scale_x_continuous(limits = c(0, 700))+
+  theme(plot.caption = element_text(hjust = 0.5),
+        plot.caption.position = 'panel',
+        axis.text.y = ggtext::element_markdown(),
+        axis.text.x = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_blank())
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank())
 
 emoji_pedro <- df_emoji %>%
   filter(autor == 'Pedro Toledo') %>% 
-  ggplot(aes(x = n, y = reorder(label, n))) + 
+  ggplot(aes(x = -n, y = reorder(label, n))) + 
   geom_col(fill = "#619CFF") +
+  geom_text(aes(label = n), nudge_x = -15) +
   labs(x = NULL, y = NULL,
-       subtitle = 'Pedro') +
-  theme(axis.text.y = ggtext::element_markdown(),
+       title = 'Pedro') +
+  scale_y_discrete(position = "right") +
+  scale_x_continuous(limits = c(-700, 0), labels = function(x) -x) +
+  theme(plot.title = element_text(hjust = 0.5),
+        plot.title.position = 'panel',
+        axis.text.y.right = ggtext::element_markdown(),
+        axis.text.x = element_blank(),
         panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_blank())
+        panel.grid.major.y = element_blank(),
+        panel.grid.major.x = element_blank())
 
-emoji_juju + 
-  emoji_pedro + 
+emoji_pedro + 
+  emoji_juju + 
   plot_annotation(title = 'Qual o emoji mais usado?', 
-                  subtitle = 'Top 10 emojis mais enviados por cada um') +
-  scale_x_continuous(limits = c(0, 600), name = 'N° de Mensagens com o Emoji')
+                  subtitle = 'Top 10 emojis mais enviados por cada um')
 
 ggsave(filename = 'plots/emoji.pdf',
        device = cairo_pdf, width = 18, height = 11)
@@ -167,8 +179,8 @@ df_dias <- data %>%
 
 df_dias %>%
   ggplot(aes(x = data, y = n, color = factor(ano))) +
-  geom_line() +
-  scale_color_brewer(palette = 'Set1') +
+  geom_line(size = 1) +
+  scale_color_viridis_d(direction = -1, begin = 0.25, end = .75) +
   guides(color = guide_legend(title = 'Anos de Namoro', title.position = 'top', title.hjust = 0.5, 
                               override.aes = list(size = 1.2))) +
   labs(x = 'Tempo', y = 'N° de Mensagens',
@@ -184,4 +196,4 @@ df_dias %>%
         panel.grid.major.x = element_blank())
 
 ggsave(filename = 'plots/msg_dia.pdf',
-       device = cairo_pdf, width = 18, height = 11)
+       device = cairo_pdf, width = 20, height = 11)
