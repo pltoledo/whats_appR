@@ -1,3 +1,4 @@
+# Setup -------------------------------------------------------------------
 # Bibliotecas
 library(tidyverse)
 library(lubridate)
@@ -22,21 +23,24 @@ theme_update(plot.title.position = "plot",
                                                margin = margin(r = 15,  t = 15),
                                                face = 'bold'))
 
-# Dia da Semana
+scale_autor <- scale_fill_manual(values = c('Pedro' = '#3B528BFF', 'Juju' = '#5DC863FF'))
 
-df_doy <- data %>% 
+
+# Quando mais conversamos? ------------------------------------------------
+## Dia da Semana
+df_dow <- data %>% 
   slice(-1) %>% 
-  mutate(doy = str_to_title(wday(data, T, F))) %>% 
-  mutate(doy = fct_rev(fct_infreq(doy, ordered = T))) %>% 
-  count(doy)
+  mutate(dow = str_to_title(wday(data, T, F))) %>% 
+  mutate(dow = fct_rev(fct_infreq(dow, ordered = T))) %>% 
+  count(data, dow) %>% 
+  group_by(dow) %>% 
+  summarise(mean = mean(n))
 
-df_doy %>% 
-  ggplot(aes(x = n, y = reorder(doy, n), 
-             fill = doy)) +
+plot_dow <-df_dow %>% 
+  ggplot(aes(x = mean, y = reorder(dow, mean), 
+             fill = dow)) +
   geom_col() +
-  labs(x = 'N° de Mensagens', y = 'Dia da Semana', 
-       title = 'Qual o dia que mais conversamos?',
-       subtitle = 'Quantidade de mensagens enviadas por dia da semana') + 
+  labs(x = 'N° de Mensagens', y = 'Dia da Semana') + 
   scale_x_continuous(labels = scales::label_number()) +
   scale_fill_viridis_d( direction = -1, begin = 0.25, end = .75) +
   theme(legend.position = 'none',
@@ -46,11 +50,56 @@ df_doy %>%
         panel.grid.minor = element_blank(),
         panel.grid.major.y = element_blank())
 
-ggsave(filename = 'plots/doy.pdf',
-       device = cairo_pdf, width = 18, height = 11)
+## Dia do Mês
+df_dom <- data %>% 
+  slice(-1) %>% 
+  mutate(dom = str_to_title(mday(data))) %>% 
+  mutate(dom = fct_inseq(dom, ordered = T)) %>% 
+  count(data, dom) %>% 
+  group_by(dom) %>% 
+  summarise(mean = mean(n))
 
-# Nomes
+plot_dom <- df_dom %>% 
+  ggplot(aes(y = mean, x = dom, 
+             fill = dom)) +
+  geom_col() +
+  labs(y = 'N° de Mensagens', x = 'Dia do Mês') + 
+  scale_y_continuous(labels = scales::label_number()) +
+  scale_fill_viridis_d( direction = -1, begin = 0.25, end = .75) +
+  theme(legend.position = 'none',
+        axis.text.y = element_text(size = 13),
+        axis.text.x = element_text(size = 13),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
 
+## Horas do dia
+df_horas <- data %>% 
+  mutate(hora = factor(hour(hms(hora)))) %>% 
+  mutate(hora = fct_rev(fct_inseq(hora))) %>% 
+  count(data, hora) %>% 
+  group_by(hora) %>% 
+  summarise(mean = mean(n))
+
+plot_horas <- df_horas %>% 
+  ggplot(aes(y = hora, x = mean, color = hora)) +
+  geom_point(size = 3) +
+  scale_color_viridis_d( direction = -1, begin = 0.25, end = .75) +
+  labs(y = 'Hora', x = 'N° Mensagens') +
+  theme(legend.position = 'none',
+        axis.text.y = element_text(size = 13),
+        axis.text.x = element_text(size = 13),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.y = element_blank())
+
+## Plot Final
+(plot_dow + plot_horas)/plot_dom + 
+  plot_annotation(title = 'Quando mais conversamos?',
+                  subtitle = 'Média de mensagens enviadas por dia da semana, do mês e em cada hora do dia')
+
+ggsave(filename = 'plots/quando.pdf',
+       device = cairo_pdf, width = 18, height = 15)
+
+# Nomes -------------------------------------------------------------------
 df_nomes <- data %>% 
   mutate(palavras = str_split(mensagem, ' ')) %>% 
   unchop(palavras) %>% 
@@ -79,7 +128,7 @@ df_nomes %>%
        title = 'Quem falou mais o nome do outro?',
        subtitle = 'Quantidade de mensagens em que o nome do outro foi mencionado',
        fill = NULL) +
-  scale_fill_manual(values = c('#F8766D', "#619CFF")) +
+  scale_autor +
   theme(legend.position = 'none',
         axis.text.y = element_text(size = 13),
         axis.text.x = element_text(size = 13),
@@ -89,8 +138,8 @@ df_nomes %>%
 ggsave(filename = 'plots/nomes.pdf',
        device = cairo_pdf, width = 18, height = 11)
 
-# Emojis
 
+# Emojis ------------------------------------------------------------------
 emoji_to_link <- function(x) {
   paste0("https://emojipedia.org/emoji/",x) %>%
     read_html() %>%
@@ -122,13 +171,15 @@ df_emoji <- data %>%
 emoji_juju <- df_emoji %>%
   filter(autor == 'Juju') %>% 
   ggplot(aes(x = n, y = reorder(label, n))) + 
-  geom_col(fill = "#F8766D") +
-  geom_text(aes(label = n), nudge_x = 15) +
+  geom_col(fill = "#5DC863FF") +
+  geom_text(aes(label = n), nudge_x = 20) +
   labs(x = NULL, y = NULL,
-       subtitle = 'Juliana') +
-  scale_x_continuous(limits = c(0, 700))+
-  theme(plot.caption = element_text(hjust = 0.5),
-        plot.caption.position = 'panel',
+       title = 'Juliana') +
+  scale_x_continuous(limits = c(0, 750))+
+  theme(plot.title = element_text(size = 20,
+                                  hjust = 0.5,
+                                  face = 'plain'),
+        plot.title.position = 'panel',
         axis.text.y = ggtext::element_markdown(),
         axis.text.x = element_blank(),
         panel.grid.minor = element_blank(),
@@ -138,13 +189,15 @@ emoji_juju <- df_emoji %>%
 emoji_pedro <- df_emoji %>%
   filter(autor == 'Pedro Toledo') %>% 
   ggplot(aes(x = -n, y = reorder(label, n))) + 
-  geom_col(fill = "#619CFF") +
-  geom_text(aes(label = n), nudge_x = -15) +
+  geom_col(fill = "#3B528BFF") +
+  geom_text(aes(label = n), nudge_x = -20) +
   labs(x = NULL, y = NULL,
        title = 'Pedro') +
   scale_y_discrete(position = "right") +
-  scale_x_continuous(limits = c(-700, 0), labels = function(x) -x) +
-  theme(plot.title = element_text(hjust = 0.5),
+  scale_x_continuous(limits = c(-750, 0), labels = function(x) -x) +
+  theme(plot.title = element_text(size = 20,
+                                  hjust = 0.5, 
+                                  face = 'plain'),
         plot.title.position = 'panel',
         axis.text.y.right = ggtext::element_markdown(),
         axis.text.x = element_blank(),
@@ -160,11 +213,13 @@ emoji_pedro +
 ggsave(filename = 'plots/emoji.pdf',
        device = cairo_pdf, width = 18, height = 11)
 
-# Mensagens por Dia
+
+# Estamos conversnado menos? ----------------------------------------------
+## Mensagens por Dia
 
 df_dias <- data %>% 
   count(data) %>% 
-  filter(data >= '2018-09-04') %>% 
+  filter(data >= '2018-09-05') %>% 
   right_join(tibble(data = seq(min(.$data), max(.$data), by = 'days')),
              'data') %>% 
   mutate(min_year = year(min(data)),
@@ -172,9 +227,9 @@ df_dias <- data %>%
          year_gap = (max_year - min_year),
          year = year(data),
          dif_to_max_year = max_year - year,
-         ano = case_when(data >= glue('{year(data)}-09-04') & 
-                           data <= glue('{year(data) + 1}-09-04') ~ year_gap - dif_to_max_year,
-                         data < glue('{year(data)}-09-04') ~ year_gap - dif_to_max_year - 1)) %>% 
+         ano = case_when(data >= glue('{year(data)}-09-05') & 
+                           data <= glue('{year(data) + 1}-09-05') ~ year_gap - dif_to_max_year,
+                         data < glue('{year(data)}-09-05') ~ year_gap - dif_to_max_year - 1)) %>% 
   replace_na(list(n = 0))
 
 df_dias %>%
@@ -197,3 +252,39 @@ df_dias %>%
 
 ggsave(filename = 'plots/msg_dia.pdf',
        device = cairo_pdf, width = 20, height = 11)
+
+## Mensagens por Ano
+
+df_ano <- data %>% 
+  slice(-1) %>% 
+  count(data) %>% 
+  filter(data >= '2018-09-05') %>%
+  mutate(min_year = year(min(data)),
+         max_year = year(max(data)),
+         year_gap = (max_year - min_year),
+         year = year(data),
+         dif_to_max_year = max_year - year,
+         ano = case_when(data >= glue('{year(data)}-09-05') & 
+                           data <= glue('{year(data) + 1}-09-05') ~ year_gap - dif_to_max_year,
+                         data < glue('{year(data)}-09-05') ~ year_gap - dif_to_max_year - 1)) %>% 
+  group_by(ano) %>% 
+  summarise(mean = mean(n))
+
+
+df_ano %>% 
+  ggplot(aes(x = factor(ano), y = mean, 
+             fill = factor(ano))) +
+  geom_col() +
+  labs(y = 'N° de Mensagens', x = 'Dia do Mês', 
+       title = 'Quando mais conversamos?',
+       subtitle = 'Média de mensagens enviadas por dia do mês') + 
+  scale_y_continuous(labels = scales::label_number()) +
+  scale_x_discrete(labels = function(x) str_c('Ano ', x)) +
+  scale_fill_viridis_d( direction = -1, begin = 0.25, end = .75) +
+  theme(legend.position = 'none',
+        axis.text.y = element_text(size = 13),
+        axis.text.x = element_text(size = 13),
+        panel.grid.minor = element_blank())
+
+ggsave(filename = 'plots/dom.pdf',
+       device = cairo_pdf, width = 18, height = 11)

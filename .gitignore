@@ -38,5 +38,6 @@ vignettes/*.pdf
 # R Environment Variables
 .Renviron
 
-# Dados
+# Dados e plots
 data/*
+plots/*
